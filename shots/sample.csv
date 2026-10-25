@@ -1,0 +1,24 @@
+﻿participant_id,round,game,item_no,item_id,item_type,response,correct,rt_ms,timeout,error_type,stim_onset_perf_ms,timestamp_perf_ms,timestamp_iso
+P01,seg1,G1_comprehension,1,7,mc,選項 B,0,48.9,0,,,909.9,2026-10-25T06:57:43.108Z
+P01,seg1,G1_comprehension,2,14,inf,,0,,1,,,1210.4,2026-10-25T06:57:43.409Z
+P01,seg1,G1_comprehension,3,15,inf,,0,,1,,,1511.1,2026-10-25T06:57:43.709Z
+P01,seg1,G1_comprehension,4,4,tf,,0,,1,,,1811.5,2026-10-25T06:57:44.010Z
+P01,seg1,G1_comprehension,5,8,mc,,0,,1,,,2112.2,2026-10-25T06:57:44.311Z
+P01,seg1,G1_comprehension,6,5,mc,,0,,1,,,2412.8,2026-10-25T06:57:44.611Z
+P01,seg1,G1_comprehension,7,1,tf,,0,,1,,,2713.3,2026-10-25T06:57:44.912Z
+P01,seg1,G1_comprehension,8,10,kw,,0,,1,,,3013.9,2026-10-25T06:57:45.212Z
+P01,seg1,G1_comprehension,9,11,kw,,0,,1,,,3314.7,2026-10-25T06:57:45.513Z
+P01,seg1,G1_comprehension,10,9,mc,,0,,1,,,3615.3,2026-10-25T06:57:45.814Z
+P01,seg1,G1_comprehension,11,6,mc,,0,,1,,,3915.9,2026-10-25T06:57:46.114Z
+P01,seg1,G1_comprehension,12,3,tf,,0,,1,,,4216.4,2026-10-25T06:57:46.415Z
+P01,seg1,G1_comprehension,13,12,kw,,0,,1,,,4516.9,2026-10-25T06:57:46.715Z
+P01,seg1,G1_comprehension,14,2,tf,,0,,1,,,4817.5,2026-10-25T06:57:47.016Z
+P01,seg1,G1_comprehension,15,13,inf,,0,,1,,,5117.9,2026-10-25T06:57:47.316Z
+P01,seg1,G2_gonogo,1,,nogo,,1,,0,,6313.1,7813.5,2026-10-25T06:57:50.012Z
+P01,seg1,G2_gonogo,2,,go,press,1,581.5,0,,7813.7,9314.0,2026-10-25T06:57:51.512Z
+P01,seg1,G2_gonogo,3,,go,,0,,1,omission,9314.3,10814.5,2026-10-25T06:57:53.013Z
+P01,seg1,G2_gonogo,4,,go,,0,,1,omission,10814.7,12315.0,2026-10-25T06:57:54.513Z
+P01,seg1,G2_gonogo,5,,go,,0,,1,omission,12315.2,13815.4,2026-10-25T06:57:56.014Z
+P01,seg1,G2_gonogo,6,,go,,0,,1,omission,13815.6,15315.9,2026-10-25T06:57:57.514Z
+P01,seg1,G2_gonogo,7,,nogo,,1,,0,,15316.2,16816.4,2026-10-25T06:57:59.015Z
+P01,seg1,G2_gonogo,8,,go,,0,,1,omission,16816.5,18316.8,2026-10-25T06:58:00.515Z

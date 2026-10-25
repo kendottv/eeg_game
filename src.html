@@ -1,0 +1,234 @@
+<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>聽讀小遊戲</title>
+<style>
+@font-face{font-family:Cubic11;src:url(data:font/woff2;base64,__FONT__) format('woff2');}
+:root{--ink:#2a2a2e;--pill:rgba(38,38,42,.88);--wood:#d8c29d;--wood2:#c9b086;--seam:#a88c63;--panel:#fffaf0}
+*{box-sizing:border-box;font-family:Cubic11,monospace;-webkit-font-smoothing:none}
+body{margin:0;min-height:100vh;background:#1f1f22;color:var(--ink);display:flex;align-items:center;justify-content:center;font-size:26px}
+.win{width:min(880px,94vw);border:6px solid #3d3d42;border-radius:22px;overflow:hidden;box-shadow:0 0 0 4px #121214;
+ background:repeating-linear-gradient(90deg,var(--wood) 0 40px,var(--wood2) 40px 42px,var(--wood) 42px 82px,var(--seam) 82px 84px)}
+.bar{margin:14px 14px 0;display:inline-flex;align-items:center;gap:10px;background:var(--pill);color:#fff;border-radius:999px;padding:6px 18px 6px 8px;font-size:22px}
+.body{padding:22px 28px 28px;min-height:440px;display:flex;flex-direction:column;gap:18px}
+h1{font-size:42px;margin:0;font-weight:normal}h2{font-size:30px;margin:0;font-weight:normal}
+.title{align-self:flex-start;background:var(--pill);color:#fff;border-radius:999px;padding:6px 20px}
+.btn{font-size:24px;background:var(--pill);color:#fff;border:3px solid #111;border-radius:999px;padding:10px 22px;cursor:pointer;display:inline-flex;align-items:center;gap:10px;text-align:left}
+.btn:active{transform:translateY(2px)}
+.btn.g{background:#2f6e4a}.btn.b{background:#3b5b8a}.btn.o{background:#26262a}
+input{font-size:28px;border:4px solid var(--ink);border-radius:14px;padding:10px 16px;background:var(--panel);width:100%}
+.qpanel{background:var(--panel);border:4px solid var(--ink);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:18px}
+.qpanel .btn{background:#fff;color:var(--ink);border-color:var(--ink);border-radius:12px}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.tag{display:inline-flex;align-items:center;gap:6px;background:var(--pill);color:#fff;border-radius:999px;padding:3px 14px;font-size:20px}
+.stage{height:300px;display:flex;align-items:center;justify-content:center;background:var(--panel);border:4px solid var(--ink);border-radius:14px}
+.small{font-size:20px}.row{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.guide{display:flex;gap:18px;align-items:center}
+.who{display:flex;flex-direction:column;align-items:center;gap:6px;flex:none}
+.who svg .hd{animation:breathe .75s steps(1) infinite}
+@keyframes breathe{0%{transform:translateY(0)}60%{transform:translateY(-1px)}}
+.name{background:var(--pill);color:#fff;border-radius:999px;padding:2px 14px;font-size:20px}
+.bubble{background:var(--pill);color:#fff;border-radius:22px;padding:14px 22px;font-size:23px;line-height:1.55}
+.bubble b{color:#ffe08a;font-weight:normal}
+.legend{background:var(--panel);border:4px solid var(--ink);border-radius:14px;padding:10px 18px}
+.scale{display:flex;gap:4px;justify-content:space-between}.scale .btn{padding:6px 0;width:100%;justify-content:center;border-radius:6px;font-size:18px}
+.scale .btn.on{background:var(--ink);color:#fff}.ends{display:flex;justify-content:space-between;font-size:20px}
+.ed{background:var(--panel);border:4px solid var(--ink);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:8px;font-size:20px}
+.ed textarea,.ed select,.ed input{font-size:20px;border:3px solid var(--ink);border-radius:10px;padding:6px 10px;background:#fff;width:100%}
+.ed .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.tabs .btn.on{background:#c8553d}
+.btn.sm{font-size:18px;padding:6px 14px}
+</style></head><body>
+<div class="win"><div class="bar" id="bar"></div><div class="body" id="app"></div></div>
+<script>
+/* ===================== 題目資料（直接改這裡） =====================
+   type: tf=是非, mc=四選一, kw=關鍵字配對, inf=推論
+   answer: 正確選項的索引（從 0 開始）；是非題選項固定為 ["是","否"]
+   目前全部是「示範題」，請換成依 Podcast 逐字稿出的題目。 */
+const ITEMS = {
+  practice: [
+    {type:"tf", q:"（練習）太陽從東邊升起。", opts:["是","否"], answer:0},
+    {type:"mc", q:"（練習）一週有幾天？", opts:["5","6","7","8"], answer:2},
+    {type:"kw", q:"（練習）「台北101」位於哪個城市？請點出關鍵字。", opts:["台中","台北","高雄","花蓮"], answer:1},
+  ],
+  seg1: mk("第一段"), seg2: mk("第二段"),
+};
+function mk(s){const a=[];let n=1;
+  for(let i=0;i<4;i++)a.push({type:"tf",q:`示範題｜${s} 是非題 ${n++}：Podcast 有提到某件事。`,opts:["是","否"],answer:i%2});
+  for(let i=0;i<5;i++)a.push({type:"mc",q:`示範題｜${s} 選擇題 ${n++}：主持人提到的重點是？`,opts:["選項 A","選項 B","選項 C","選項 D"],answer:i%4});
+  for(let i=0;i<3;i++)a.push({type:"kw",q:`示範題｜${s} 關鍵字配對 ${n++}：「＿＿」是本段的關鍵字。`,opts:["關鍵字一","關鍵字二","關鍵字三","關鍵字四"],answer:i});
+  for(let i=0;i<3;i++)a.push({type:"inf",q:`示範題｜${s} 推論題 ${n++}：根據內容，最合理的推論是？`,opts:["推論 A","推論 B","推論 C","推論 D"],answer:(i+1)%4});
+  return a;}
+/* enableGame2：false 時略過遊戲二（Go/No-Go），流程為 遊戲一 → 完成；CSV 格式不變，只是沒有 G2 列 */
+const CFG = {sound:true, enableGame2:true, itemCapMs:20000, seed:20261025, gng:{main:{n:100,nogo:25}, practice:{n:20,nogo:5}, stimMs:500, isiMs:1000}};
+
+let AC=null;function beep(f=880,d=.06,f2=null){if(!CFG.sound)return;try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();o.type="square";o.frequency.setValueAtTime(f,t);if(f2)o.frequency.setValueAtTime(f2,t+d/2);g.gain.setValueAtTime(.08,t);g.gain.setValueAtTime(0,t+d);o.connect(g).connect(AC.destination);o.start(t);o.stop(t+d+.02)}catch(e){}}
+function errBeep(){if(!CFG.sound)return;try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const t=AC.currentTime;[[392,0],[196,.11]].forEach(([f,d])=>{const o=AC.createOscillator(),g=AC.createGain();o.type="square";o.frequency.setValueAtTime(f,t+d);o.frequency.linearRampToValueAtTime(f*.85,t+d+.1);g.gain.setValueAtTime(.09,t+d);g.gain.setValueAtTime(0,t+d+.1);o.connect(g).connect(AC.destination);o.start(t+d);o.stop(t+d+.12)})}catch(e){}}
+document.addEventListener("pointerdown",e=>{const b=e.target.closest(".btn");if(b&&b.id!=="hit"){beep(880,.06);return}if(e.target.closest(".who"))beep(660,.12,990)});
+/* ================================================================ */
+const TYPE_ZH={tf:"是非",mc:"選擇",kw:"關鍵字配對",inf:"推論"};
+const ROUND_ZH={practice:"練習",seg1:"第一段（聽）",seg2:"第二段（讀）"};
+function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function shuffle(a,seed){a=a.slice();const r=rng(seed);for(let i=a.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+const SVG={
+ arrow:`<svg width="20" height="20" viewBox="0 0 5 5" shape-rendering="crispEdges" fill="#fff"><rect x="1" y="0" width="1" height="5"/><rect x="2" y="1" width="1" height="3"/><rect x="3" y="2" width="1" height="1"/></svg>`,
+ pet:`<svg width="40" height="40" viewBox="0 0 10 10" shape-rendering="crispEdges"><rect x="2" y="1" width="1" height="2" fill="#3b2b2b"/><rect x="7" y="1" width="1" height="2" fill="#3b2b2b"/><rect x="1" y="3" width="8" height="6" fill="#3b2b2b"/><rect x="2" y="3" width="6" height="5" fill="#fff8e8"/><rect x="3" y="5" width="1" height="1" fill="#3b2b2b"/><rect x="6" y="5" width="1" height="1" fill="#3b2b2b"/><rect x="2" y="6" width="1" height="1" fill="#f2a6a6"/><rect x="7" y="6" width="1" height="1" fill="#f2a6a6"/></svg>`,
+ clock:`<svg width="28" height="28" viewBox="0 0 8 8" shape-rendering="crispEdges"><rect x="2" y="0" width="4" height="1" fill="#3b2b2b"/><rect x="0" y="2" width="1" height="4" fill="#3b2b2b"/><rect x="7" y="2" width="1" height="4" fill="#3b2b2b"/><rect x="2" y="7" width="4" height="1" fill="#3b2b2b"/><rect x="1" y="1" width="1" height="1" fill="#3b2b2b"/><rect x="6" y="1" width="1" height="1" fill="#3b2b2b"/><rect x="1" y="6" width="1" height="1" fill="#3b2b2b"/><rect x="6" y="6" width="1" height="1" fill="#3b2b2b"/><rect x="1" y="2" width="6" height="4" fill="#fff"/><rect x="2" y="1" width="4" height="6" fill="#fff"/><rect x="4" y="2" width="1" height="3" fill="#3b2b2b"/><rect x="5" y="4" width="1" height="1" fill="#3b2b2b"/></svg>`,
+ check:`<svg width="96" height="96" viewBox="0 0 8 8" shape-rendering="crispEdges"><rect x="6" y="1" width="1" height="2" fill="#3b2b2b"/><rect x="5" y="3" width="1" height="1" fill="#3b2b2b"/><rect x="4" y="4" width="1" height="1" fill="#3b2b2b"/><rect x="3" y="5" width="1" height="1" fill="#3b2b2b"/><rect x="2" y="4" width="1" height="1" fill="#3b2b2b"/><rect x="1" y="3" width="1" height="1" fill="#3b2b2b"/></svg>`,
+ go:`<svg width="200" height="200" viewBox="0 0 10 10" shape-rendering="crispEdges"><g fill="#2e9e5b"><rect x="3" y="0" width="4" height="10"/><rect x="1" y="1" width="8" height="8"/><rect x="0" y="3" width="10" height="4"/></g></svg>`,
+ nogo:`<svg width="200" height="200" viewBox="0 0 10 10" shape-rendering="crispEdges"><g fill="#d6453d">${[0,1,2,3,4,5,6,7,8].map(i=>`<rect x="${i}" y="${i}" width="2" height="2"/><rect x="${8-i}" y="${i}" width="2" height="2"/>`).join("")}</g></svg>`,
+ fix:`<svg width="40" height="40" viewBox="0 0 5 5" shape-rendering="crispEdges"><rect x="2" y="0" width="1" height="5" fill="#3b2b2b"/><rect x="0" y="2" width="5" height="1" fill="#3b2b2b"/></svg>`};
+
+/* ===== 像素小人「東吳豆包」（Peeps 風格原創） ===== */
+const PAL={k:"#241a16",h:"#8a5a3a",H:"#5e3a24",l:"#a8754e",s:"#f7dcc2",S:"#e5bc9c",e:"#241a16",b:"#f0a8a0",j:"#5a3d2c",J:"#3e2a1f",w:"#efe6d4",p:"#30303a",o:"#18181c"};
+const ROWS=[
+"....kkkkkkkk....",
+"...khhlhhhlhk...",
+"..khhhhlhhhhhk..",
+".khhlhhhhhhlhhk.",
+".khHhhhhhhhhHhk.",
+".khhHsshhssHhhk.",
+".khHsssssssssHk.",
+".kHsssessessssk.",
+".kHsssessesssSk.",
+"..kbsssssssbSk..",
+"...kSsssssSSk...",
+"....kkkkkkkk....",
+"...kjjjwwjjjk...",
+"..kjjjjwwjjjjk..",
+"..kJjjjwwjjjJk..",
+"...kjjjjjjjjk...",
+"...kppppppppk...",
+"....kpk..kpk....",
+"...kook..kook..."];
+const ARMS={down:[[2,15,"s"],[13,15,"s"],[2,14,"j"],[13,14,"j"]],
+ wave:[[2,14,"j"],[2,15,"s"],[13,13,"j"],[14,12,"j"],[14,11,"j"],[14,10,"s"],[15,10,"k"],[15,11,"k"],[15,12,"k"]],
+ point:[[2,14,"j"],[2,15,"s"],[13,13,"j"],[14,13,"j"],[15,13,"s"],[14,12,"k"],[15,12,"k"],[14,14,"k"],[15,14,"k"]],
+ cheer:[[1,12,"j"],[1,11,"j"],[1,10,"s"],[0,10,"k"],[0,11,"k"],[0,12,"k"],[14,12,"j"],[14,11,"j"],[14,10,"s"],[15,10,"k"],[15,11,"k"],[15,12,"k"]]};
+function dude(pose,px=7){const g={};ROWS.forEach((r,y)=>[...r].forEach((c,x)=>{if(c!==".")g[x+","+y]=c}));
+ const arm={};(ARMS[pose]||ARMS.down).forEach(([x,y,c])=>{g[x+","+y]=c;arm[x+","+y]=1});
+ let hd="",bd="";for(const k in g){const[x,y]=k.split(",");const t=`<rect x="${x}" y="${y}" width="1" height="1" fill="${PAL[g[k]]}"/>`;if(+y<17)hd+=t;else bd+=t}
+ return `<svg width="${16*px}" height="${21*px}" viewBox="0 -1 16 21" style="overflow:visible" shape-rendering="crispEdges"><rect x="3" y="19" width="10" height="1" fill="#000" opacity=".18"/><rect x="4" y="16" width="8" height="1" fill="${PAL.p}"/>${bd}<g class="hd">${hd}</g></svg>`}
+function guide(pose,text){return `<div class="guide"><div class="who">${dude(pose)}<span class="name">東吳豆包</span></div><div class="bubble">${text}</div></div>`}
+const app=document.getElementById("app"),bar=document.getElementById("bar");
+let S={pid:"",round:"",rows:[]};
+function setBar(t){bar.innerHTML=SVG.pet+`<span>${t}</span>`}
+function log(o){S.rows.push(Object.assign({participant_id:S.pid,round:S.round},o,{timestamp_perf_ms:performance.now().toFixed(1),timestamp_iso:new Date().toISOString()}))}
+function start(){setBar("聽讀小遊戲");S.rows=[];
+ app.innerHTML=guide("wave","嗨！我是東吳豆包，今天陪你一起玩。<br>先輸入你的受試者編號吧（不用填名字喔）。")+`<input id="pid" placeholder="例如 P01" value="${S.pid}"><button class="btn o" id="next">${SVG.arrow}下一步</button><div class="small" id="msg"></div><button class="btn sm" id="edit" style="align-self:flex-end">編輯題目（實驗人員）</button>`;
+ document.getElementById("edit").onclick=()=>editor();
+ document.getElementById("next").onclick=()=>{const v=document.getElementById("pid").value.trim();if(!v){document.getElementById("msg").textContent="請先輸入編號";errBeep();return}S.pid=v;pick()}}
+function pick(){setBar("選擇回合");
+ app.innerHTML=guide("point",`${S.pid}，歡迎！<br>請照實驗人員的指示，選一個回合。`)+`<div class="row"><button class="btn" data-r="practice">練習</button><button class="btn g" data-r="seg1">第一段（聽）</button><button class="btn b" data-r="seg2">第二段（讀）</button></div><button class="btn small" id="back">回上一步</button>`;
+ document.getElementById("back").onclick=start;
+ app.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{S.round=b.dataset.r;intro1()})}
+function intro1(){setBar(ROUND_ZH[S.round]+"｜遊戲一：內容理解");
+ const pr=S.round==="practice";app.innerHTML=`<h2 class="title">遊戲一：內容理解${pr?"（練習）":""}</h2>`+guide(pr?"wave":"point",pr?"先來暖身！這幾題跟 Podcast 無關，<br>不計分，熟悉一下怎麼點就好。":"接下來每頁一題，點你覺得對的答案。<br>想不起來也沒關係，時間到會自動跳下一題。")+`<button class="btn o" id="go">${SVG.arrow}開始</button>`;
+ document.getElementById("go").onclick=()=>game1(S.round==="practice"?ITEMS.practice:shuffle(ITEMS[S.round],CFG.seed+(S.round==="seg1"?1:2)))}
+function game1(list){let i=0,timer,t0;
+ function show(){if(i>=list.length)return CFG.enableGame2?intro2():afterGames();const it=list[i];
+  app.innerHTML=`<div class="row"><span class="tag">第 ${i+1} / ${list.length} 題</span><span class="tag">${TYPE_ZH[it.type]}</span><span class="tag" style="margin-left:auto">${SVG.clock}</span></div><div class="qpanel"><h2>${it.q}</h2><div class="opts">${it.opts.map((o,k)=>`<button class="btn" data-k="${k}">${o}</button>`).join("")}</div></div>`;
+  t0=performance.now();
+  app.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>done(+b.dataset.k,false));
+  timer=setTimeout(()=>done(null,true),CFG.itemCapMs);
+  function done(k,to){clearTimeout(timer);const rt=performance.now()-t0;if(S.round==="practice"&&k!==null&&k!==it.answer)errBeep();
+   log({game:"G1_comprehension",item_no:list.indexOf(it)+1,item_id:(ITEMS[S.round]||[]).indexOf(it)+1,item_type:it.type,response:k===null?"":it.opts[k],correct:k===null?0:+(k===it.answer),rt_ms:to?"":rt.toFixed(1),timeout:+to});
+   i++;show()}}
+ show()}
+function intro2(){setBar(ROUND_ZH[S.round]+"｜遊戲二：專注反應");
+ const pr=S.round==="practice";app.innerHTML=`<h2 class="title">遊戲二：專注反應${pr?"（練習）":""}</h2>`+guide("cheer",(pr?"練習的遊戲一完成！":"遊戲一完成了，先深呼吸一下。")+"<br>下一關：看到<b>綠色圓形</b>就馬上按空白鍵，<br>看到<b>紅色叉叉</b>就忍住不要按！")+`<div class="legend row"><span style="transform:scale(.3);width:60px;height:60px;display:inline-flex;align-items:center;justify-content:center">${SVG.go}</span><div>看到綠色圓形：盡快按空白鍵（或點下方按鈕）</div></div><div class="legend row"><span style="transform:scale(.3);width:60px;height:60px;display:inline-flex;align-items:center;justify-content:center">${SVG.nogo}</span><div>看到紅色叉叉：不要按</div></div><button class="btn o" id="go">${SVG.arrow}開始</button>`;
+ document.getElementById("go").onclick=game2}
+function seq(n,nogo,seed){return shuffle(Array(n-nogo).fill("go").concat(Array(nogo).fill("nogo")),seed)}
+function game2(){const g=S.round==="practice"?CFG.gng.practice:CFG.gng.main;const s=seq(g.n,g.nogo,CFG.seed+99+(S.round==="practice"?1:0));let i=0,onset=0,resp=null,active=false;
+ app.innerHTML=`<div class="stage" id="st">${SVG.fix}</div><button class="btn g" id="hit" style="text-align:center">按</button>`;
+ const st=document.getElementById("st");
+ const press=()=>{if(active&&resp===null)resp=performance.now()-onset};
+ document.getElementById("hit").onpointerdown=press;
+ const kd=e=>{if(e.code==="Space"){e.preventDefault();press()}};document.addEventListener("keydown",kd);
+ function trial(){if(i>=s.length){document.removeEventListener("keydown",kd);return afterGames()}
+  resp=null;active=true;st.innerHTML=SVG[s[i]].replace('<svg','<svg data-s="'+s[i]+'"');onset=performance.now();const on=onset;
+  setTimeout(()=>{st.innerHTML=SVG.fix},CFG.gng.stimMs);
+  setTimeout(()=>{active=false;const k=s[i];const pressed=resp!==null;
+   log({game:"G2_gonogo",item_no:i+1,item_type:k,response:pressed?"press":"",correct:+(k==="go"?pressed:!pressed),rt_ms:pressed?resp.toFixed(1):"",timeout:+(k==="go"&&!pressed),error_type:k==="go"?(pressed?"":"omission"):(pressed?"commission":""),stim_onset_perf_ms:on.toFixed(1)});
+   if(S.round==="practice"&&k==="nogo"&&pressed)errBeep();
+   i++;trial()},CFG.gng.stimMs+CFG.gng.isiMs)}
+ setTimeout(trial,1000)}
+const COLS=["participant_id","round","game","item_no","item_id","item_type","response","correct","rt_ms","timeout","error_type","stim_onset_perf_ms","timestamp_perf_ms","timestamp_iso"];
+function csv(){return "\ufeff"+COLS.join(",")+"\n"+S.rows.map(r=>COLS.map(c=>{const v=r[c]??"";return /[",\n]/.test(v)?`"${String(v).replace(/"/g,'""')}"`:v}).join(",")).join("\n")}
+function download(){const b=new Blob([csv()],{type:"text/csv"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=`${S.pid}_${S.round}_${new Date().toISOString().replace(/[:.]/g,"-")}.csv`;document.body.appendChild(a);a.click();a.remove()}
+
+/* ===== 問卷（可自行修改題目）：NASA-TLX 6 題 0–20，另加兩題 1–7 ===== */
+const SURVEY=[
+ {id:"tlx_mental",type:"nasa_tlx",q:"這段內容需要多少腦力？（思考、記憶、理解）",lo:"非常低",hi:"非常高",min:0,max:20},
+ {id:"tlx_physical",type:"nasa_tlx",q:"這段過程身體上有多吃力？",lo:"非常低",hi:"非常高",min:0,max:20},
+ {id:"tlx_temporal",type:"nasa_tlx",q:"你覺得時間上有多趕？",lo:"非常低",hi:"非常高",min:0,max:20},
+ {id:"tlx_performance",type:"nasa_tlx",q:"你覺得自己表現得多好？",lo:"非常好",hi:"非常差",min:0,max:20},
+ {id:"tlx_effort",type:"nasa_tlx",q:"你花了多少力氣才達到這樣的表現？",lo:"非常低",hi:"非常高",min:0,max:20},
+ {id:"tlx_frustration",type:"nasa_tlx",q:"過程中你有多挫折、煩躁或有壓力？",lo:"非常低",hi:"非常高",min:0,max:20},
+ {id:"self_focus",type:"likert7",q:"整體來說，你覺得自己剛剛有多專心？",lo:"完全不專心",hi:"非常專心",min:1,max:7},
+ {id:"topic_familiar",type:"likert7",q:"你對這段 Podcast 的主題原本有多熟悉？",lo:"完全不熟",hi:"非常熟悉",min:1,max:7}];
+function afterGames(){return S.round==='practice'?end():survey()}
+function survey(){let i=0;setBar(ROUND_ZH[S.round]+"｜問卷");
+ app.innerHTML=`<h2 class="title">問卷</h2>`+guide("cheer","遊戲都完成了！最後幾題問問你的感受，<br>沒有對錯，照直覺選就好。")+`<button class="btn o" id="go">${SVG.arrow}開始填寫</button>`;
+ document.getElementById("go").onclick=show;
+ function show(){if(i>=SURVEY.length)return end();const it=SURVEY[i];let pick=null;const t0=performance.now();
+  const n=[];for(let v=it.min;v<=it.max;v++)n.push(v);
+  app.innerHTML=`<div class="row"><span class="tag">第 ${i+1} / ${SURVEY.length} 題</span></div><div class="qpanel"><h2>${it.q}</h2><div class="scale">${n.map(v=>`<button class="btn" data-v="${v}">${v}</button>`).join("")}</div><div class="ends"><span>${it.lo}</span><span>${it.hi}</span></div></div><button class="btn o" id="nx" disabled style="opacity:.4">${SVG.arrow}下一題</button>`;
+  const nx=document.getElementById("nx");
+  app.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{app.querySelectorAll("[data-v]").forEach(x=>x.classList.remove("on"));b.classList.add("on");pick=+b.dataset.v;nx.disabled=false;nx.style.opacity=1});
+  nx.onclick=()=>{if(pick===null)return;log({game:"Q_survey",item_no:i+1,item_id:it.id,item_type:it.type,response:pick,correct:"",rt_ms:(performance.now()-t0).toFixed(1),timeout:0});i++;show()}}}
+
+/* ===== 題目編輯頁 ===== */
+const DEF=JSON.stringify({practice:ITEMS.practice,seg1:ITEMS.seg1,seg2:ITEMS.seg2,survey:SURVEY});
+function applyBank(b){["practice","seg1","seg2"].forEach(k=>{if(b[k])ITEMS[k]=b[k]});if(b.survey){SURVEY.length=0;b.survey.forEach(x=>SURVEY.push(x))}}
+try{const b=localStorage.getItem("eeg_bank");if(b)applyBank(JSON.parse(b))}catch(e){}
+function esc(t){return String(t??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;")}
+
+const L="ABCDEFGH";
+function gbody(it){const t=it.type,o=it.opts||[],a=it.answer??0;
+ const sel=(arr)=>`<label>正確答案：<select data-f="answer" style="width:auto">${arr.map((x,k)=>`<option value="${k}" ${k===a?"selected":""}>${x}</option>`).join("")}</select></label>`;
+ if(t==="tf")return `<div class="small">是非題：選項固定為「是／否」</div>`+sel(["是","否"]);
+ if(t==="kw")return `<textarea data-f="kwlist" rows="4" placeholder="候選關鍵字，一行一個">${esc(o.join("\n"))}</textarea>`+sel(o.length?o.map((x,k)=>`${k+1}. ${esc(x)||"（空白）"}`):["（先填關鍵字）"]);
+ const four=[0,1,2,3].map(k=>o[k]??"");
+ return `<div class="small">${t==="inf"?"推論題：題目要問「根據內容可以推論出什麼」，答案不會直接出現在原文":"選擇題：四個選項"}</div><div class="row2">${four.map((x,k)=>`<input data-f="opt" placeholder="選項 ${L[k]}" value="${esc(x)}">`).join("")}</div>`+sel(four.map((x,k)=>L[k]))}
+function gcard(it,n){return `<div class="ed" data-n="${n}"><div class="row"><b>第 ${n+1} 題</b><button class="btn sm" data-del="${n}" style="margin-left:auto">刪除</button></div>
+ <label>題型：<select data-f="type" style="width:auto">${Object.entries(TYPE_ZH).map(([k,v])=>`<option value="${k}" ${it.type===k?"selected":""}>${v}</option>`).join("")}</select></label>
+ <textarea data-f="q" rows="2" placeholder="題目">${esc(it.q)}</textarea>${gbody(it)}</div>`}
+function readG(c){const g=f=>c.querySelector(`[data-f="${f}"]`);const t=g("type").value;let opts;
+ if(t==="tf")opts=["是","否"];else if(t==="kw")opts=g("kwlist")?g("kwlist").value.split("\n").map(x=>x.trim()).filter(Boolean):[];else opts=[...c.querySelectorAll('[data-f="opt"]')].map(x=>x.value.trim());
+ const a=g("answer")?+g("answer").value:0;return {type:t,q:g("q").value,opts,answer:Math.max(0,Math.min(Math.max(opts.length-1,0),a))}}
+let editor_bind=()=>{};
+function editor(tab="seg1"){setBar("編輯題目");
+ const tabs=[["practice","練習題"],["seg1","第一段（聽）"],["seg2","第二段（讀）"],["survey","問卷"]];
+ const list=tab==="survey"?SURVEY:ITEMS[tab];
+ const card=(it,n)=>tab==="survey"?
+  `<div class="ed" data-n="${n}"><div class="row"><b>第 ${n+1} 題</b><button class="btn sm" data-del="${n}" style="margin-left:auto">刪除</button></div>
+   <textarea data-f="q" rows="2" placeholder="題目">${esc(it.q)}</textarea>
+   <div class="row2"><input data-f="lo" placeholder="左端文字" value="${esc(it.lo)}"><input data-f="hi" placeholder="右端文字" value="${esc(it.hi)}"></div>
+   <select data-f="type"><option value="nasa_tlx" ${it.type==="nasa_tlx"?"selected":""}>0–20 分（NASA-TLX）</option><option value="likert7" ${it.type!=="nasa_tlx"?"selected":""}>1–7 分</option></select></div>`:
+  gcard(it,n);
+ app.innerHTML=`<div class="row tabs">${tabs.map(([k,v])=>`<button class="btn sm ${k===tab?"on":""}" data-t="${k}">${v}</button>`).join("")}</div>
+  <div id="cards" style="display:flex;flex-direction:column;gap:12px;max-height:52vh;overflow:auto">${list.map(card).join("")}</div>
+  <div class="row"><button class="btn sm" id="add">新增一題</button><button class="btn sm g" id="save">儲存</button><button class="btn sm" id="exp">匯出檔案</button><button class="btn sm" id="imp">匯入檔案</button><button class="btn sm" id="rst">還原預設</button><button class="btn sm o" id="back" style="margin-left:auto">回首頁</button></div><div class="small" id="msg"></div>`;
+ const msg=t=>document.getElementById("msg").textContent=t;
+ function collect(){const out=[...app.querySelectorAll(".ed")].map(c=>{const g=f=>c.querySelector(`[data-f="${f}"]`).value;
+   if(tab==="survey"){const t=g("type");return {id:"q"+(+c.dataset.n+1),type:t,q:g("q"),lo:g("lo"),hi:g("hi"),min:t==="nasa_tlx"?0:1,max:t==="nasa_tlx"?20:7}}
+   return readG(c)});
+  if(tab==="survey"){SURVEY.length=0;out.forEach(x=>SURVEY.push(x))}else ITEMS[tab]=out}
+ function bank(){return {practice:ITEMS.practice,seg1:ITEMS.seg1,seg2:ITEMS.seg2,survey:SURVEY}}
+ editor_bind=()=>{const c=document.getElementById("cards"),sc=c.scrollTop;editor(tab);document.getElementById("cards").scrollTop=sc};
+ if(tab!=="survey")app.querySelectorAll(".ed").forEach(c=>{const re=()=>{const it=readG(c);const ty=c.querySelector('[data-f="type"]').value;
+   if(c.dataset.ty&&c.dataset.ty!==ty){if(ty==="tf")it.opts=["是","否"];else if(c.dataset.ty==="tf")it.opts=[];it.answer=0}
+   const n=+c.dataset.n;ITEMS[tab][n]=it;const d=document.createElement("div");d.innerHTML=gcard(it,n);c.replaceWith(d.firstElementChild);editor_bind()};
+  c.dataset.ty=c.querySelector('[data-f="type"]').value;c.querySelector('[data-f="type"]').onchange=re;const k=c.querySelector('[data-f="kwlist"]');if(k)k.onblur=re});
+ app.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{collect();editor(b.dataset.t)});
+ app.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{collect();(tab==="survey"?SURVEY:ITEMS[tab]).splice(+b.dataset.del,1);editor(tab)});
+ document.getElementById("add").onclick=()=>{collect();(tab==="survey"?SURVEY:ITEMS[tab]).push(tab==="survey"?{type:"likert7",q:"",lo:"",hi:"",min:1,max:7}:{type:"mc",q:"",opts:["","","",""],answer:0});editor(tab);const c=document.getElementById("cards");c.scrollTop=c.scrollHeight};
+ document.getElementById("save").onclick=()=>{collect();const bad=["practice","seg1","seg2"].flatMap(k=>ITEMS[k].map((it,n)=>(!it.q||it.opts.length<2)?`${k} 第 ${n+1} 題`:null)).filter(Boolean);
+  localStorage.setItem("eeg_bank",JSON.stringify(bank()));beep(1046,.08);msg(bad.length?"已儲存，但這些題目缺題目或少於 2 個選項："+bad.join("、"):"已儲存，這台電腦的瀏覽器之後都會用這份題目。")};
+ document.getElementById("exp").onclick=()=>{collect();const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(bank(),null,2)],{type:"application/json"}));a.download="題庫.json";a.click();msg("已匯出 題庫.json，可以傳給組員匯入。")};
+ document.getElementById("imp").onclick=()=>{const f=document.createElement("input");f.type="file";f.accept=".json";f.onchange=()=>f.files[0].text().then(t=>{try{applyBank(JSON.parse(t));localStorage.setItem("eeg_bank",JSON.stringify(bank()));editor(tab);msg("匯入完成並已儲存。")}catch(e){errBeep();msg("檔案格式不對，匯入失敗。")}});f.click()};
+ document.getElementById("rst").onclick=()=>{if(!confirm("確定還原成預設題目？目前修改會清掉。"))return;localStorage.removeItem("eeg_bank");applyBank(JSON.parse(DEF));editor(tab);msg("已還原預設。")};
+ document.getElementById("back").onclick=()=>{collect();start()}}
+function end(){app.innerHTML='';setBar("完成");download();
+ app.innerHTML=`<h1 class="title" style="align-self:center">完成，謝謝</h1>`+guide("cheer","辛苦了！這一回合完成囉。<br>資料已經自動下載，請告訴實驗人員。")+`<div class="row" style="justify-content:center"><button class="btn" id="re">再下載一次</button><button class="btn o" id="home">回首頁</button></div>`;
+ document.getElementById("re").onclick=download;document.getElementById("home").onclick=start}
+window.__S=S;window.__CFG=CFG;start();
+</script></body></html>
