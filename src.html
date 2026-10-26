@@ -57,11 +57,12 @@ function mk(s){const a=[];let n=1;
   for(let i=0;i<3;i++)a.push({type:"inf",q:`示範題｜${s} 推論題 ${n++}：根據內容，最合理的推論是？`,opts:["推論 A","推論 B","推論 C","推論 D"],answer:(i+1)%4});
   return a;}
 /* enableGame2：false 時略過遊戲二（Go/No-Go），流程為 遊戲一 → 完成；CSV 格式不變，只是沒有 G2 列 */
-const CFG = {sound:true, enableGame2:true, itemCapMs:20000, seed:20261025, gng:{main:{n:100,nogo:25}, practice:{n:20,nogo:5}, stimMs:500, isiMs:1000}};
+const CFG = {sound:true, enableGame2:true, itemCapMs:20000, seed:20261025, gng:{main:{n:100,nogo:25}, practice:{n:20,nogo:5}, stimMs:500, isiMs:1000}, gngSec:60};
+try{const v=+localStorage.getItem("eeg_gng_sec");if(v>=15&&v<=300)CFG.gngSec=v}catch(e){}
 
 let AC=null;function beep(f=880,d=.06,f2=null){if(!CFG.sound)return;try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain();o.type="square";o.frequency.setValueAtTime(f,t);if(f2)o.frequency.setValueAtTime(f2,t+d/2);g.gain.setValueAtTime(.08,t);g.gain.setValueAtTime(0,t+d);o.connect(g).connect(AC.destination);o.start(t);o.stop(t+d+.02)}catch(e){}}
 function errBeep(){if(!CFG.sound)return;try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();const t=AC.currentTime;[[392,0],[196,.11]].forEach(([f,d])=>{const o=AC.createOscillator(),g=AC.createGain();o.type="square";o.frequency.setValueAtTime(f,t+d);o.frequency.linearRampToValueAtTime(f*.85,t+d+.1);g.gain.setValueAtTime(.09,t+d);g.gain.setValueAtTime(0,t+d+.1);o.connect(g).connect(AC.destination);o.start(t+d);o.stop(t+d+.12)})}catch(e){}}
-document.addEventListener("pointerdown",e=>{const b=e.target.closest(".btn");if(b&&b.id!=="hit"){beep(880,.06);return}if(e.target.closest(".who"))beep(660,.12,990)});
+document.addEventListener("pointerdown",e=>{try{if(AC&&AC.state==="suspended")AC.resume()}catch(_){}const b=e.target.closest("button,.btn,[data-v],[data-k],[data-t]");if(b&&b.id!=="hit"&&b.id!=="save"&&!b.disabled){beep(880,.06);return}if(e.target.closest(".who"))beep(660,.12,990)},true);
 /* ================================================================ */
 const TYPE_ZH={tf:"是非",mc:"選擇",kw:"關鍵字配對",inf:"推論"};
 const ROUND_ZH={practice:"練習",seg1:"第一段（聽）",seg2:"第二段（讀）"};
@@ -136,7 +137,7 @@ function intro2(){setBar(ROUND_ZH[S.round]+"｜遊戲二：專注反應");
  const pr=S.round==="practice";app.innerHTML=`<h2 class="title">遊戲二：專注反應${pr?"（練習）":""}</h2>`+guide("cheer",(pr?"練習的遊戲一完成！":"遊戲一完成了，先深呼吸一下。")+"<br>下一關：看到<b>綠色圓形</b>就馬上按空白鍵，<br>看到<b>紅色叉叉</b>就忍住不要按！")+`<div class="legend row"><span style="transform:scale(.3);width:60px;height:60px;display:inline-flex;align-items:center;justify-content:center">${SVG.go}</span><div>看到綠色圓形：盡快按空白鍵（或點下方按鈕）</div></div><div class="legend row"><span style="transform:scale(.3);width:60px;height:60px;display:inline-flex;align-items:center;justify-content:center">${SVG.nogo}</span><div>看到紅色叉叉：不要按</div></div><button class="btn o" id="go">${SVG.arrow}開始</button>`;
  document.getElementById("go").onclick=game2}
 function seq(n,nogo,seed){return shuffle(Array(n-nogo).fill("go").concat(Array(nogo).fill("nogo")),seed)}
-function game2(){const g=S.round==="practice"?CFG.gng.practice:CFG.gng.main;const s=seq(g.n,g.nogo,CFG.seed+99+(S.round==="practice"?1:0));let i=0,onset=0,resp=null,active=false;
+function game2(){let g=CFG.gng.practice;if(S.round!=="practice"){const n=Math.max(4,Math.round(CFG.gngSec*1000/(CFG.gng.stimMs+CFG.gng.isiMs)));g={n,nogo:Math.round(n*CFG.gng.main.nogo/CFG.gng.main.n)}}const s=seq(g.n,g.nogo,CFG.seed+99+(S.round==="practice"?1:0));let i=0,onset=0,resp=null,active=false;
  app.innerHTML=`<div class="stage" id="st">${SVG.fix}</div><button class="btn g" id="hit" style="text-align:center">按</button>`;
  const st=document.getElementById("st");
  const press=()=>{if(active&&resp===null)resp=performance.now()-onset};
@@ -206,7 +207,7 @@ function editor(tab="seg1"){setBar("編輯題目");
   gcard(it,n);
  app.innerHTML=`<div class="row tabs">${tabs.map(([k,v])=>`<button class="btn sm ${k===tab?"on":""}" data-t="${k}">${v}</button>`).join("")}</div>
   <div id="cards" style="display:flex;flex-direction:column;gap:12px;max-height:52vh;overflow:auto">${list.map(card).join("")}</div>
-  <div class="row"><button class="btn sm" id="add">新增一題</button><button class="btn sm g" id="save">儲存</button><button class="btn sm" id="exp">匯出檔案</button><button class="btn sm" id="imp">匯入檔案</button><button class="btn sm" id="rst">還原預設</button><button class="btn sm o" id="back" style="margin-left:auto">回首頁</button></div><div class="small" id="msg"></div>`;
+  <div class="row"><button class="btn sm" id="add">新增一題</button><button class="btn sm g" id="save">儲存</button><button class="btn sm" id="exp">匯出檔案</button><button class="btn sm" id="imp">匯入檔案</button><button class="btn sm" id="rst">還原預設</button><button class="btn sm o" id="back" style="margin-left:auto">回首頁</button></div><div class="row small">專注反應遊戲（正式回合）長度：<input id="gsec" type="number" min="15" max="300" step="5" value="${CFG.gngSec}" style="width:80px"> 秒（15–300，按儲存生效）</div><div class="small" id="msg"></div>`;
  const msg=t=>document.getElementById("msg").textContent=t;
  function collect(){const out=[...app.querySelectorAll(".ed")].map(c=>{const g=f=>c.querySelector(`[data-f="${f}"]`).value;
    if(tab==="survey"){const t=g("type");return {id:"q"+(+c.dataset.n+1),type:t,q:g("q"),lo:g("lo"),hi:g("hi"),min:t==="nasa_tlx"?0:1,max:t==="nasa_tlx"?20:7}}
@@ -221,7 +222,7 @@ function editor(tab="seg1"){setBar("編輯題目");
  app.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{collect();editor(b.dataset.t)});
  app.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{collect();(tab==="survey"?SURVEY:ITEMS[tab]).splice(+b.dataset.del,1);editor(tab)});
  document.getElementById("add").onclick=()=>{collect();(tab==="survey"?SURVEY:ITEMS[tab]).push(tab==="survey"?{type:"likert7",q:"",lo:"",hi:"",min:1,max:7}:{type:"mc",q:"",opts:["","","",""],answer:0});editor(tab);const c=document.getElementById("cards");c.scrollTop=c.scrollHeight};
- document.getElementById("save").onclick=()=>{collect();const bad=["practice","seg1","seg2"].flatMap(k=>ITEMS[k].map((it,n)=>(!it.q||it.opts.filter(o=>String(o).trim()).length<2)?`${k} 第 ${n+1} 題`:null)).filter(Boolean);
+ document.getElementById("save").onclick=()=>{collect();const gs=Math.round(+document.getElementById("gsec").value);if(!(gs>=15&&gs<=300)){errBeep();msg("專注反應遊戲長度要在 15 到 300 秒之間。");return}CFG.gngSec=gs;localStorage.setItem("eeg_gng_sec",gs);const bad=["practice","seg1","seg2"].flatMap(k=>ITEMS[k].map((it,n)=>(!it.q||it.opts.filter(o=>String(o).trim()).length<2)?`${k} 第 ${n+1} 題`:null)).filter(Boolean);
   localStorage.setItem("eeg_bank",JSON.stringify(bank()));beep(1046,.08);msg(bad.length?"已儲存，但這些題目缺題目或少於 2 個選項："+bad.join("、"):"已儲存，這台電腦的瀏覽器之後都會用這份題目。")};
  document.getElementById("exp").onclick=()=>{collect();const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(bank(),null,2)],{type:"application/json"}));a.download="題庫.json";a.click();msg("已匯出 題庫.json，可以傳給組員匯入。")};
  document.getElementById("imp").onclick=()=>{const f=document.createElement("input");f.type="file";f.accept=".json";f.onchange=()=>f.files[0].text().then(t=>{try{applyBank(JSON.parse(t));localStorage.setItem("eeg_bank",JSON.stringify(bank()));editor(tab);msg("匯入完成並已儲存。")}catch(e){errBeep();msg("檔案格式不對，匯入失敗。")}});f.click()};
